@@ -33,6 +33,13 @@ async def process_frame(frame):
         frame_np = np.frombuffer(frame, dtype=np.uint8)
         decoded_frame = cv2.imdecode(frame_np, flags=1)
 
+        # Get original dimensions
+        height, width, _ = decoded_frame.shape
+        aspect_ratio = width / height
+
+        # Resize frame for processing
+        decoded_frame = cv2.resize(decoded_frame, (640, int(640 / aspect_ratio)))
+
         # Recolor frame to RGB
         decoded_frame = cv2.cvtColor(decoded_frame, cv2.COLOR_BGR2RGB)
         decoded_frame.flags.writeable = False
