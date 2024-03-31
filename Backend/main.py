@@ -1,6 +1,8 @@
 # Import fastapi modules
 import logging
-from fastapi import FastAPI, File, BackgroundTasks
+import os
+import time
+from fastapi import FastAPI, File, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import uvicorn
@@ -25,47 +27,59 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-async def process_video(frames):
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter('output.avi', fourcc, 20.0, (640, 480))
-    with mp_pose.Pose(min_detection_confidence = 0.5, min_tracking_confidence = 0.5) as pose:
-        for frame in frames:
-            frame_np = np.frombuffer(frame, dtype=np.uint8)
-            decoded_frame = cv2.imdecode(frame_np, flags=1)
-            
-            # Recolor frame to RGB
-            decoded_frame = cv2.cvtColor(decoded_frame, cv2.COLOR_BGR2RGB)
-            decoded_frame.flags.writeable = False
-            
-            # Make detection
-            results = pose.process(decoded_frame)
-            
-            # Recolor back to BGR
-            decoded_frame.flags.writeable = True
-            decoded_frame    = cv2.cvtColor(decoded_frame,cv2.COLOR_RGB2BGR)
-            
-            # Render detections
-            mp_drawing.draw_landmarks(decoded_frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-            
-            # Encode the processed frame to JPEG
-            ret, buffer = cv2.imencode('.jpg', decoded_frame)
-            frame_bytes = buffer.tobytes()
-            
-            yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-            
-    # Release resources
-    out.release()
-        
 
-@app.post("/process_video/")
-async def process_video_endpoint(frames: bytes, background_tasks: BackgroundTasks):
-    background_tasks.add_task(process_video, frames.split(b'--frame\r\n'))
-    return StreamingResponse(process_video(frames.split(b'--frame\r\n')), media_type="multipart/x-mixed-replace; boundary=frame")
-         
+async def process_frame(frame):
+    with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
+        frame_np = np.frombuffer(frame, dtype=np.uint8)
+        decoded_frame = cv2.imdecode(frame_np, flags=1)
+
+        # Recolor frame to RGB
+        decoded_frame = cv2.cvtColor(decoded_frame, cv2.COLOR_BGR2RGB)
+        decoded_frame.flags.writeable = False
+
+        # Make detection
+        results = pose.process(decoded_frame)
+
+        # Recolor back to BGR
+        decoded_frame.flags.writeable = True
+        decoded_frame = cv2.cvtColor(decoded_frame, cv2.COLOR_RGB2BGR)
+        
+        # Render detections
+        mp_drawing.draw_landmarks(
+            decoded_frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+
+        # Encode the processed frame to JPEG
+        ret, buffer = cv2.imencode('.jpg', decoded_frame)
+        frame_bytes = buffer.tobytes()
+        
+        # Save the processed frame to a file
+        filename = f"processed_images/{time.time()}.jpg"
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with open(filename, "wb") as f:
+            f.write(buffer)
+
+        return (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_bytes()
+            processed_frame = await process_frame(data)
+            await websocket.send_bytes(processed_frame)
+    except WebSocketDisconnect:
+        # Handle disconnection
+        print("Client disconnected")
+
 
 if __name__ == "__main__":
-
-    # Needed for app to hotreload
-    logging.basicConfig(level=logging.INFO)
-    uvicorn.run("main:app", host="0.0.0.0", port=9080, reload=True)
+    try:
+        # Needed for app to hotreload
+        logging.basicConfig(level=logging.INFO)
+        uvicorn.run("main:app", host="0.0.0.0", port=9080, reload=True)
+    finally:
+        quit
