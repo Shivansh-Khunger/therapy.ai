@@ -1,6 +1,7 @@
 # Import fastapi modules
 import logging
 from fastapi import FastAPI, File, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import uvicorn
 
@@ -14,6 +15,15 @@ mp_pose = mp.solutions.pose
 
 # Define fastapi app
 app = FastAPI()
+
+# Allow all origins (for development purposes)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 async def process_video(frames):
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
