@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Video Streaming</title>
+</head>
+<body>
+    <h1>Live Video Streaming</h1>
+    <div>
+        <video id="videoElement" autoplay></video>
+        <canvas id="canvasElement"></canvas>
+    </div>
+    
+    <script>
+        const videoElement = document.getElementById('videoElement');
+        const canvasElement = document.getElementById('canvasElement');
+        const ctx = canvasElement.getContext('2d');
+        let websocket;
+
+        // Function to connect to WebSocket server
+        function connectWebSocket() {
+            websocket = new WebSocket('ws://localhost:9080/ws');
+
+            websocket.onopen = function(event) {
+                console.log('WebSocket connected');
+            };
+
+            websocket.onmessage = function(event) {
+                // Convert received data to blob
+                const blob = new Blob([event.data], { type: 'image/jpeg' });
+                const imageUrl = URL.createObjectURL(blob);
+
+                // Display received image
+                const receivedImage = new Image();
+                receivedImage.onload = function() {
+                    canvasElement.width = receivedImage.width;
+                    canvasElement.height = receivedImage.height;
+                    ctx.drawImage(receivedImage, 0, 0);
+                };
+                receivedImage.src = imageUrl;
+            };
+
+            websocket.onerror = function(event) {
+                console.error('WebSocket error:', event);
+            };
+
+            websocket.onclose = function(event) {
+                console.log('WebSocket closed');
+            };
+        }
+
+        // Function to send webcam frames to server
+        function sendFrame() {
+            if (websocket.readyState !== websocket.OPEN) {
+                console.error('WebSocket connection is not open');
+                return;
+            }
+
+            // Capture frame from webcam
+            ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+            canvasElement.toBlob((blob) => {
+                websocket.send(blob);
+            }, 'image/jpeg');
+        }
+
+        // Request user media permission and start streaming when permission is granted
+        async function startStreaming() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoElement.srcObject = stream;
+                connectWebSocket(); // Connect to WebSocket after permission is granted
+                // Send webcam frames to server every 100ms
+                setInterval(sendFrame, 100);
+            } catch (error) {
+                console.error('Error accessing webcam:', error);
+            }
+        }
+
+        // Call startStreaming function when page loads
+        window.onload = function() {
+            startStreaming();
+        };
+    </script>
+</body>
+</html>
