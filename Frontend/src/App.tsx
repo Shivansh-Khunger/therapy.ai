@@ -54,7 +54,7 @@ function App() {
     if (imageSrc) {
       let imageSrcParts = imageSrc.split(",");
       let base64Data = imageSrcParts[1];
-      console.log(base64Data);
+      console.log(`Sending frame at ${new Date().getTime()}`);
       sendMessage(base64Data);
     } else {
       console.log(imageSrc);
@@ -66,12 +66,19 @@ function App() {
   };
 
   useEffect(() => {
+    if (lastMessage?.data) {
+        console.log(`Received frame at ${new Date().getTime()}`);
+        setRecievedFrame(lastMessage.data);
+    }
+  }, [lastMessage]);
+
+  useEffect(() => {
     if (start) {
       console.log("Here");
       const tempInterval = setInterval(() => {
         const capturedBase64 = capture();
         handleClickSendMessage(capturedBase64 ? capturedBase64 : null);
-      }, 100);
+      }, 300);
 
       return () => {
         clearInterval(tempInterval);
