@@ -1,33 +1,9 @@
 import Webcam from "react-webcam";
 import { useEffect, useRef, useState, useCallback } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
-import b64toBlob from "b64-to-blob";
 
 function App() {
   const webCamRef = useRef<Webcam>(null);
-
-  // Ignore this code left only for if needed in future
-
-  // const useRecievedFrame = (initialValue: string | null) => {
-  //   const [recievedFrame, setRecievedFrame] = useState<string | null>(
-  //     initialValue,
-  //   );
-
-  //   let current = recievedFrame;
-
-  //   const get = () => current;
-
-  //   const set = (newValue: string) => {
-  //     current = newValue;
-  //     setRecievedFrame(newValue);
-  //     return current;
-  //   };
-
-  //   return {
-  //     get,
-  //     set,
-  //   };
-  // };
 
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [socketUrl, setSocketUrl] = useState("ws://127.0.0.1:9080/ws");
@@ -67,8 +43,8 @@ function App() {
 
   useEffect(() => {
     if (lastMessage?.data) {
-        console.log(`Received frame at ${new Date().getTime()}`);
-        setRecievedFrame(lastMessage.data);
+      console.log(`Received frame at ${new Date().getTime()}`);
+      setRecievedFrame(lastMessage.data);
     }
   }, [lastMessage]);
 
@@ -107,7 +83,7 @@ function App() {
   return (
     <>
       <div className="flex h-screen w-screen items-center justify-center gap-4">
-        <div className="flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center justify-center gap-2">
           <div className="flex justify-center gap-4">
             {" "}
             <button
@@ -127,17 +103,20 @@ function App() {
               Stop
             </button>
           </div>
-          <h2 className="flex justify-center font-bold">Our Webcam</h2>
-          <Webcam
-            ref={webCamRef}
-            screenshotFormat="image/jpeg"
-            mirrored={true}
-          />
-        </div>
-        <div>
-          {recievedFrame ? (
-            <img src={`data:image/jpeg;base64,${recievedFrame}`} alt="" />
-          ) : null}
+          {/* Did absolute to remove our live web-cam feed and just show the recieved frames.*/}
+          <div className="flex flex-col items-center justify-center">
+            <Webcam
+              ref={webCamRef}
+              screenshotFormat="image/jpeg"
+              mirrored={true}
+              className="absolute -z-10 opacity-0"
+            />
+          </div>
+          <div className="">
+            {recievedFrame ? (
+              <img src={`data:image/jpeg;base64,${recievedFrame}`} alt="" />
+            ) : null}
+          </div>
         </div>
       </div>
     </>
