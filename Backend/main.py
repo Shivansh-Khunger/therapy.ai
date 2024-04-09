@@ -2,6 +2,7 @@
 import logging
 import os
 import time
+import json
 from fastapi import FastAPI, File, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -27,6 +28,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+exercise_list = [
+    "wand_exercise"
+]
 
 
 async def process_frame(frame_base64):
@@ -88,6 +93,9 @@ async def websocket_endpoint(websocket: WebSocket):
         # Handle disconnection
         print("Client disconnected")
 
+@app.get("/exercises")
+async def exercise_list():
+    return json.dumps(exercise_list)
 
 if __name__ == "__main__":
     try:
