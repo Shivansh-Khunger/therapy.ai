@@ -14,6 +14,12 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
+# Import modules for webrtc
+from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
+from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder
+from av import VideoFrame
+import asyncio
+
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
@@ -45,8 +51,27 @@ async def calculate_angle(a,b,c):
         angle = 360 - angle
     return angle
 
-async def process_frame(frame_base64):
-    frame = base64.b64decode(frame_base64)
+class FrameProcessor(VideoStreamTrack):
+    kind = "video"
+
+    def __init__(self):
+        super().__init__()  # don't forget this!
+        self.queue = asyncio.Queue()
+
+    async def recv(self):
+        frame = await self.queue.get()
+
+        # Process the frame
+        img = frame.to_ndarray(format="bgr24")
+
+        # Process the frame with MediaPipe here
+        # ...
+        frame = process_frame(img)
+
+        return frame
+    
+async def process_frame(frame):
+    # frame = base64.b64decode(frame_base64)
     with mp_pose.Pose(
         min_detection_confidence=0.5, min_tracking_confidence=0.5
     ) as pose:
@@ -100,11 +125,11 @@ async def process_frame(frame_base64):
         ret, buffer = cv2.imencode(".jpg", decoded_frame)
         frame_bytes = buffer.tobytes()
 
-        # # Save the processed frame to a file
-        # filename = f"processed_images/{time.time()}.jpg"
-        # os.makedirs(os.path.dirname(filename), exist_ok=True)
-        # with open(filename, "wb") as f:
-        #     f.write(buffer)
+        # Save the processed frame to a file
+        filename = f"processed_images/{time.time()}.jpg"
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with open(filename, "wb") as f:
+            f.write(buffer)
 
         # Convert the processed frame to base64
         frame_base64 = base64.b64encode(frame_bytes).decode()
@@ -112,17 +137,41 @@ async def process_frame(frame_base64):
         return frame_base64
 
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    try:
-        while True:
-            data = await websocket.receive_text()
-            processed_frame = await process_frame(data)
-            await websocket.send_bytes(processed_frame)
-    except WebSocketDisconnect:
-        # Handle disconnection
-        print("Client disconnected")
+# @app.websocket("/ws")
+# async def websocket_endpoint(websocket: WebSocket):
+#     await websocket.accept()
+#     try:
+#         while True:
+#             data = await websocket.receive_text()
+#             processed_frame = await process_frame(data)
+#             await websocket.send_bytes(processed_frame)
+#     except WebSocketDisconnect:
+#         # Handle disconnection
+#         print("Client disconnected")
+
+@app.post("/offer")
+async def offer(offer: RTCSessionDescription):
+    print("Offer received")
+    pc = RTCPeerConnection()
+    frame_processor = FrameProcessor()
+
+    @pc.on("track")
+    def on_track(track):
+        print("Track received")
+        @track.on("frame")
+        async def on_frame(frame):  
+            print("on_frame called")
+            await frame_processor.queue.put(frame)
+
+    await pc.setRemoteDescription(offer)
+    for t in pc.getTransceivers():
+        if t.kind == "video":
+            pc.addTrack(frame_processor)
+
+    answer = await pc.createAnswer()
+    await pc.setLocalDescription(answer)
+
+    return RTCSessionDescription(sdp=pc.localDescription.sdp, type=pc.localDescription.type)
 
 @app.get("/exercises")
 async def exercise_list():

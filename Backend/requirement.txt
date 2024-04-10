@@ -3,3 +3,4 @@ mediapipe
 fastapi
 uvicorn
 websockets
+aiortc
