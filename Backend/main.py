@@ -2,6 +2,7 @@
 import logging
 import os
 import time
+import json
 from fastapi import FastAPI, File, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -28,6 +29,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+exercise_list = [
+    "wand_exercise"
+]
+
+async def calculate_angle(a,b,c):
+    a = np.array(a)
+    b = np.array(b)
+    c = np.array(c)
+    
+    radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
+    angle = np.abs(radians*180.0/np.pi)
+    
+    if angle > 180.0:
+        angle = 360 - angle
+    return angle
 
 async def process_frame(frame_base64):
     frame = base64.b64decode(frame_base64)
@@ -54,6 +70,26 @@ async def process_frame(frame_base64):
         # Recolor back to BGR
         decoded_frame.flags.writeable = True
         decoded_frame = cv2.cvtColor(decoded_frame, cv2.COLOR_RGB2BGR)
+        
+                # Extract landmarks
+        try:
+            landmarks = results.pose_landmarks.landmark
+            
+            # Get coordinates
+            shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
+            elbow = [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x,landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
+            wrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x,landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
+            
+            # Calculate angle
+            angle = await calculate_angle(shoulder, elbow, wrist)
+
+            cv2.putText(decoded_frame, str(angle), 
+                           tuple(np.multiply(elbow, [640, 480]).astype(int)), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA
+                                )
+                       
+        except:
+            pass
 
         # Render detections
         mp_drawing.draw_landmarks(
@@ -64,11 +100,11 @@ async def process_frame(frame_base64):
         ret, buffer = cv2.imencode(".jpg", decoded_frame)
         frame_bytes = buffer.tobytes()
 
-        # Save the processed frame to a file
-        filename = f"processed_images/{time.time()}.jpg"
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-        with open(filename, "wb") as f:
-            f.write(buffer)
+        # # Save the processed frame to a file
+        # filename = f"processed_images/{time.time()}.jpg"
+        # os.makedirs(os.path.dirname(filename), exist_ok=True)
+        # with open(filename, "wb") as f:
+        #     f.write(buffer)
 
         # Convert the processed frame to base64
         frame_base64 = base64.b64encode(frame_bytes).decode()
@@ -88,6 +124,9 @@ async def websocket_endpoint(websocket: WebSocket):
         # Handle disconnection
         print("Client disconnected")
 
+@app.get("/exercises")
+async def exercise_list():
+    return json.dumps(exercise_list)
 
 if __name__ == "__main__":
     try:
