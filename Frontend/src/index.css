@@ -1,3 +1,289 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+.recieved {
+  background-color: red;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+.main {
+  display: flex;
+  flex-direction: column;
+  background-color: rgb(39, 39, 39);
+}
+
+/* qwiodjoweif uew */
+.web-cam {
+  background-color: rgb(39, 39, 39);
+  width: 100%;
+  height: 70vh;
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-around;
+  /* position: relative; */
+}
+.web-cam > div > h1 {
+  color: rgb(222, 60, 60);
+}
+.web-cam > img {
+  height: 90%;
+  background-color: rgb(255, 255, 255);
+  /* position: absolute; */
+  align-self: center;
+  border-radius: 10px;
+}
+.side-content {
+  width: 40%;
+  background-color: rgb(234, 234, 234);
+  height: 90%;
+  margin-right: 2rem;
+  display: flex;
+  justify-content: center;
+  align-self: center;
+  border-radius: 10px;
+}
+.side-content > h1 {
+  align-self: center;
+
+  font-size: 5rem;
+}
+.side-content > img {
+  align-self: center;
+
+  /* font-size: 5rem; */
+  width: 70%;
+}
+
+button {
+  position: relative;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  outline-offset: 4px;
+  transition: filter 250ms;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.shadow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  background: hsl(0deg 0% 0% / 0.25);
+  will-change: transform;
+  transform: translateY(2px);
+  transition: transform 600ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+.edge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  background: linear-gradient(
+    to left,
+    hsl(340deg 100% 16%) 0%,
+    hsl(340deg 100% 32%) 8%,
+    hsl(340deg 100% 32%) 92%,
+    hsl(340deg 100% 16%) 100%
+  );
+}
+
+.front {
+  display: block;
+  position: relative;
+  padding: 12px 27px;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  color: white;
+  background: hsl(345deg 100% 47%);
+  will-change: transform;
+  transform: translateY(-4px);
+  transition: transform 600ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+button:hover {
+  filter: brightness(110%);
+}
+
+button:hover .front {
+  transform: translateY(-6px);
+  transition: transform 250ms cubic-bezier(0.3, 0.7, 0.4, 1.5);
+}
+
+button:active .front {
+  transform: translateY(-2px);
+  transition: transform 34ms;
+}
+
+button:hover .shadow {
+  transform: translateY(4px);
+  transition: transform 250ms cubic-bezier(0.3, 0.7, 0.4, 1.5);
+}
+
+button:active .shadow {
+  transform: translateY(1px);
+  transition: transform 34ms;
+}
+
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+button {
+  position: relative;
+  padding: 10px 20px;
+  border-radius: 7px;
+  border: 1px solid rgb(61, 106, 255);
+  font-size: 14px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 2px;
+  background: transparent;
+  color: #fff;
+  overflow: hidden;
+  box-shadow: 0 0 0 0 transparent;
+  -webkit-transition: all 0.2s ease-in;
+  -moz-transition: all 0.2s ease-in;
+  transition: all 0.2s ease-in;
+}
+
+button:hover {
+  background: rgb(61, 106, 255);
+  box-shadow: 0 0 30px 5px rgba(0, 142, 236, 0.815);
+  -webkit-transition: all 0.2s ease-out;
+  -moz-transition: all 0.2s ease-out;
+  transition: all 0.2s ease-out;
+}
+
+button:hover::before {
+  -webkit-animation: sh02 0.5s 0s linear;
+  -moz-animation: sh02 0.5s 0s linear;
+  animation: sh02 0.5s 0s linear;
+}
+
+button::before {
+  content: "";
+  display: block;
+  width: 0px;
+  height: 86%;
+  position: absolute;
+  top: 7%;
+  left: 0%;
+  opacity: 0;
+  background: #fff;
+  box-shadow: 0 0 50px 30px #fff;
+  -webkit-transform: skewX(-20deg);
+  -moz-transform: skewX(-20deg);
+  -ms-transform: skewX(-20deg);
+  -o-transform: skewX(-20deg);
+  transform: skewX(-20deg);
+}
+
+@keyframes sh02 {
+  from {
+    opacity: 0;
+    left: 0%;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+    left: 100%;
+  }
+}
+
+button:active {
+  box-shadow: 0 0 0 0 transparent;
+  -webkit-transition: box-shadow 0.2s ease-in;
+  -moz-transition: box-shadow 0.2s ease-in;
+  transition: box-shadow 0.2s ease-in;
+}
+
+
+
+.back {
+  height: 100vh;
+  width: 100%;
+  background-color: rgba(167, 0, 0, 0);
+position: relative;
+/* display: flex; */
+}
+.header {
+  position: absolute;
+  top: 0%;
+  height: 7vh;
+  width: 100%;
+  /* background-color: rgba(26, 203, 26, 0.841); */
+  display: flex;
+  gap: 1.5rem;
+  transition: all 0.3s;
+}
+/* .header:hover{
+  background-color: rgba(189, 240, 171, 0.274);
+} */
+
+.backdrop{
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+.yoga{
+  position: absolute;
+  height: 40rem;
+  width: 25rem;
+  min-width: 0%;
+   top: 10%;
+  right: 0%; 
+  /* align-self: center; */
+  margin-left: auto;
+}
+.links{
+  margin-left: 25rem;
+  display: flex;
+  gap: 2rem;
+  /* background-color: red; */
+  align-items: center;
+}
+.links>a>div{
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.but>button{
+  position: absolute;
+  top: 50%;
+  left: 10%;
+  padding: 1rem;
+  border-radius: 1rem;
+    border: 1px solid rgb(255, 255, 255);
+
+}
+.but>button:hover {
+  background: rgb(11, 186, 46);
+  box-shadow: 0 0 30px 5px rgba(0, 236, 67, 0.815);
+  -webkit-transition: all 0.2s ease-out;
+  -moz-transition: all 0.2s ease-out;
+  transition: all 0.2s ease-out;
+        border: 1px solid rgb(44, 203, 57);
+
+}
+.each-nod{
+  /* background-color: red; */
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  transition: all 0.3s;
+}
+.each-nod:hover{
+  background-color: rgba(9, 160, 54, 0.468);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+
+}

@@ -13,6 +13,7 @@
     "b64-to-blob": "^1.2.19",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.3",
     "react-use-websocket": "^4.8.1",
     "react-webcam": "^7.2.0",
     "socket.io": "^4.7.5",
