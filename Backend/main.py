@@ -53,6 +53,79 @@ async def calculate_angle(a, b, c):
         angle = 360 - angle
     return angle
 
+# async def process_frame(frame):
+#     # frame = base64.b64decode(frame_base64)
+    
+#     print("Process frame called")
+#     with mp_pose.Pose(
+#         min_detection_confidence=0.5, min_tracking_confidence=0.5
+#     ) as pose:
+#         # frame_np = np.frombuffer(frame, dtype=np.uint8)
+#         decoded_frame = cv2.imdecode(frame, flags=1)
+
+#         # Get original dimensions
+#         height, width, _ = decoded_frame.shape
+#         aspect_ratio = width / height
+#         print(aspect_ratio)
+
+#         # Resize frame for processing
+#         decoded_frame = cv2.resize(
+#             decoded_frame, (640, int(640 / aspect_ratio)))
+
+#         # Recolor frame to RGB
+#         decoded_frame = cv2.cvtColor(decoded_frame, cv2.COLOR_BGR2RGB)
+#         decoded_frame.flags.writeable = False
+
+#         # Make detection
+#         results = pose.process(decoded_frame)
+
+#         # Recolor back to BGR
+#         decoded_frame.flags.writeable = True
+#         decoded_frame = cv2.cvtColor(decoded_frame, cv2.COLOR_RGB2BGR)
+
+#         # Extract landmarks
+#         try:
+#             landmarks = results.pose_landmarks.landmark
+
+#             # Get coordinates
+#             shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
+#                         landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
+#             elbow = [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x,
+#                      landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
+#             wrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x,
+#                      landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
+
+#             # Calculate angle
+#             angle = await calculate_angle(shoulder, elbow, wrist)
+
+#             cv2.putText(decoded_frame, str(angle),
+#                         tuple(np.multiply(elbow, [640, 480]).astype(int)),
+#                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255,
+#                                                       255, 255), 2, cv2.LINE_AA
+#                         )
+
+#         except:
+#             pass
+
+#         # Render detections
+#         mp_drawing.draw_landmarks(
+#             decoded_frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS
+#         )
+
+#         # Encode the processed frame to JPEG
+#         ret, buffer = cv2.imencode(".jpg", decoded_frame)
+#         frame_bytes = buffer.tobytes()
+
+#         # Save the processed frame to a file
+#         filename = f"processed_images/{time.time()}.jpg"
+#         os.makedirs(os.path.dirname(filename), exist_ok=True)
+#         with open(filename, "wb") as f:
+#             f.write(buffer)
+
+#         # Convert the processed frame to base64
+#         # frame_base64 = base64.b64encode(frame_bytes).decode()
+
+#         return frame_bytes
 
 class FrameProcessor(VideoStreamTrack):
     kind = "video"
@@ -70,81 +143,80 @@ class FrameProcessor(VideoStreamTrack):
 
         # Process the frame with MediaPipe here
         # ...
-        frame = process_frame(img)
+        print("Process frame called")
+        with mp_pose.Pose(
+            min_detection_confidence=0.5, min_tracking_confidence=0.5
+        ) as pose:
+            # frame_np = np.frombuffer(frame, dtype=np.uint8)
+            decoded_frame = cv2.imdecode(img, flags=1)
 
-        return frame
+            # Get original dimensions
+            height, width, _ = decoded_frame.shape
+            aspect_ratio = width / height
+            print(aspect_ratio)
 
+            # Resize frame for processing
+            decoded_frame = cv2.resize(
+                decoded_frame, (640, int(640 / aspect_ratio)))
 
-async def process_frame(frame):
-    # frame = base64.b64decode(frame_base64)
-    with mp_pose.Pose(
-        min_detection_confidence=0.5, min_tracking_confidence=0.5
-    ) as pose:
-        frame_np = np.frombuffer(frame, dtype=np.uint8)
-        decoded_frame = cv2.imdecode(frame_np, flags=1)
+            # Recolor frame to RGB
+            decoded_frame = cv2.cvtColor(decoded_frame, cv2.COLOR_BGR2RGB)
+            decoded_frame.flags.writeable = False
 
-        # Get original dimensions
-        height, width, _ = decoded_frame.shape
-        aspect_ratio = width / height
+            # Make detection
+            results = pose.process(decoded_frame)
 
-        # Resize frame for processing
-        decoded_frame = cv2.resize(
-            decoded_frame, (640, int(640 / aspect_ratio)))
+            # Recolor back to BGR
+            decoded_frame.flags.writeable = True
+            decoded_frame = cv2.cvtColor(decoded_frame, cv2.COLOR_RGB2BGR)
 
-        # Recolor frame to RGB
-        decoded_frame = cv2.cvtColor(decoded_frame, cv2.COLOR_BGR2RGB)
-        decoded_frame.flags.writeable = False
+            # Extract landmarks
+            try:
+                landmarks = results.pose_landmarks.landmark
 
-        # Make detection
-        results = pose.process(decoded_frame)
+                # Get coordinates
+                shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
+                            landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
+                elbow = [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x,
+                        landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
+                wrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x,
+                        landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
 
-        # Recolor back to BGR
-        decoded_frame.flags.writeable = True
-        decoded_frame = cv2.cvtColor(decoded_frame, cv2.COLOR_RGB2BGR)
+                # Calculate angle
+                angle = await calculate_angle(shoulder, elbow, wrist)
 
-        # Extract landmarks
-        try:
-            landmarks = results.pose_landmarks.landmark
+                cv2.putText(decoded_frame, str(angle),
+                            tuple(np.multiply(elbow, [640, 480]).astype(int)),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255,
+                                                        255, 255), 2, cv2.LINE_AA
+                            )
 
-            # Get coordinates
-            shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
-                        landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
-            elbow = [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x,
-                     landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
-            wrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x,
-                     landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
+            except Exception as e:
+                print(f"Exception occurred: {e}")
 
-            # Calculate angle
-            angle = await calculate_angle(shoulder, elbow, wrist)
+            # Render detections
+            mp_drawing.draw_landmarks(
+                decoded_frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS
+            )
 
-            cv2.putText(decoded_frame, str(angle),
-                        tuple(np.multiply(elbow, [640, 480]).astype(int)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255,
-                                                      255, 255), 2, cv2.LINE_AA
-                        )
+            # Encode the processed frame to JPEG
+            ret, buffer = cv2.imencode(".jpg", decoded_frame)
+            frame_bytes = buffer.tobytes()
 
-        except:
-            pass
+            # Save the processed frame to a file
+            filename = f"processed_images/{time.time()}.jpg"
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            with open(filename, "wb") as f:
+                f.write(buffer)
 
-        # Render detections
-        mp_drawing.draw_landmarks(
-            decoded_frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS
-        )
+            # Convert the processed frame to base64
+            # frame_base64 = base64.b64encode(frame_bytes).decode()
 
-        # Encode the processed frame to JPEG
-        ret, buffer = cv2.imencode(".jpg", decoded_frame)
-        frame_bytes = buffer.tobytes()
+            
+            # frame = await process_frame(frame)
 
-        # Save the processed frame to a file
-        filename = f"processed_images/{time.time()}.jpg"
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-        with open(filename, "wb") as f:
-            f.write(buffer)
+            return buffer
 
-        # Convert the processed frame to base64
-        # frame_base64 = base64.b64encode(frame_bytes).decode()
-
-        return frame_bytes
 
 
 @app.post("/offer")
@@ -177,6 +249,7 @@ async def offer(offer: RTCSessionDescription):
             # Create 'frames' directory if it doesn't exist
             os.makedirs('frames', exist_ok=True)
             while True:
+                # try:  
                 frame = await track.recv()
                 print("Processing frame")
                 # Process the frame here...
@@ -186,6 +259,9 @@ async def offer(offer: RTCSessionDescription):
                 img = frame.to_image()
                 img.save(os.path.join('frames', f'frame_{frame_count}.png'))
                 frame_count += 1
+                # except Exception as e:
+                #     print(f"Exception occurred: {e}")
+                    
 
         asyncio.create_task(track_handler())
 
@@ -211,7 +287,7 @@ async def offer(offer: RTCSessionDescription):
 
 
 @app.get("/exercises")
-async def exercise_list():
+async def exercises():
     return json.dumps(exercise_list)
 
 if __name__ == "__main__":
