@@ -1,11 +1,11 @@
 # Import fastapi modules
 import logging
 import os
+from PIL import Image
 import time
 import json
-from fastapi import FastAPI, File, BackgroundTasks, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
 import uvicorn
 import base64
 
@@ -60,6 +60,7 @@ class FrameProcessor(VideoStreamTrack):
 
     async def recv(self):
         frame = await self.queue.get()
+        print("To framw")
 
         # Process the frame
         img = frame.to_ndarray(format="bgr24")
@@ -132,22 +133,9 @@ async def process_frame(frame):
             f.write(buffer)
 
         # Convert the processed frame to base64
-        frame_base64 = base64.b64encode(frame_bytes).decode()
+        # frame_base64 = base64.b64encode(frame_bytes).decode()
 
-        return frame_base64
-
-
-# @app.websocket("/ws")
-# async def websocket_endpoint(websocket: WebSocket):
-#     await websocket.accept()
-#     try:
-#         while True:
-#             data = await websocket.receive_text()
-#             processed_frame = await process_frame(data)
-#             await websocket.send_bytes(processed_frame)
-#     except WebSocketDisconnect:
-#         # Handle disconnection
-#         print("Client disconnected")
+        return frame_bytes
 
 @app.post("/offer")
 async def offer(offer: RTCSessionDescription):
@@ -155,21 +143,58 @@ async def offer(offer: RTCSessionDescription):
     pc = RTCPeerConnection()
     frame_processor = FrameProcessor()
 
+    @pc.on("datachannel")
+    async def on_datachannel(channel):
+        print(f"Data channel is {channel.label}")
+
+        @channel.on("message")
+        async def on_message(message):
+            print(f"Message received: {message}")
+
+    
+    @pc.on("connectionstatechange")
+    async def on_connectionstatechange():
+        print(f"Connection state is {pc.connectionState}")
+        if pc.connectionState == "failed":
+            await pc.close()
+            print("Connection failed. PeerConnection closed.")
+
     @pc.on("track")
     def on_track(track):
-        print("Track received")
-        @track.on("frame")
-        async def on_frame(frame):  
-            print("on_frame called")
-            await frame_processor.queue.put(frame)
+        print(f"Track received: {track.kind}, {track.readyState}, {track.id}")
+        async def track_handler():
+            frame_count = 0
+            os.makedirs('frames', exist_ok=True)  # Create 'frames' directory if it doesn't exist
+            while True:
+                frame = await track.recv()
+                print("Processing frame")
+                # Process the frame here...
+                await frame_processor.queue.put(frame)
 
+                # Convert the frame to a PIL image and save it
+                img = frame.to_image()
+                img.save(os.path.join('frames', f'frame_{frame_count}.png'))
+                frame_count += 1
+
+        asyncio.create_task(track_handler())
+
+    print("Setting remote description")
     await pc.setRemoteDescription(offer)
+    print("Remote description set")
+
+    print("Adding track to peer connection")
     for t in pc.getTransceivers():
         if t.kind == "video":
             pc.addTrack(frame_processor)
+    print("Track added to peer connection")
 
+    print("Creating answer")
     answer = await pc.createAnswer()
+    print("Answer created")
+
+    print("Setting local description")
     await pc.setLocalDescription(answer)
+    print("Local description set")
 
     return RTCSessionDescription(sdp=pc.localDescription.sdp, type=pc.localDescription.type)
 

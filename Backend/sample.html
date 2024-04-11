@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebRTC Client</title>
+    </head>
+    <body>
+        <h1>WebRTC Client</h1>
+        <video id="video" autoplay playsinline></video>
+        <button id="start">Start</button>
+
+        <script>
+            const video = document.getElementById('video');
+            const startButton = document.getElementById('start');
+
+            let pc;
+            let stream;
+            let lastBytesSent = 0;
+
+            startButton.addEventListener('click', async () => {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+
+                pc = new RTCPeerConnection();
+                
+                stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+                pc.ontrack = (event) => {
+                    if (event.track.kind === 'video') {
+                        event.track.onunmute = () => {
+                            video.srcObject = event.streams[0];
+                        };
+                    }
+                };
+
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                const response = await fetch('http://localhost:9080/offer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sdp: pc.localDescription.sdp,
+                        type: pc.localDescription.type
+                    })
+                });
+
+                const answer = await response.json();
+                await pc.setRemoteDescription(answer);
+
+                // Start logging bytes sent every second
+                setInterval(async () => {
+                    const stats = await pc.getStats();
+                    const senderStats = [...stats.values()].find(stat => stat.type === 'outbound-rtp');
+                    if (senderStats) {
+                        console.log(`Bytes sent: ${senderStats.bytesSent - lastBytesSent}`);
+                        lastBytesSent = senderStats.bytesSent;
+                    }
+                }, 1000);
+            });
+
+            // Keep the video stream active and the RTCPeerConnection open
+            window.addEventListener('beforeunload', (event) => {
+                if (pc) {
+                    pc.close();
+                }
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+            }});
+        </script>
+    </body>
+</html>
