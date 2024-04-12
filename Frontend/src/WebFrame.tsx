@@ -52,15 +52,6 @@ const WebFrame = () => {
 
   useEffect(() => {
     if (start) {
-      console.log("Here");
-      const tempInterval = setInterval(() => {
-        const capturedBase64 = capture();
-        handleClickSendMessage(capturedBase64 ? capturedBase64 : null);
-      }, 300);
-
-      return () => {
-        clearInterval(tempInterval);
-      };
     } else {
       console.log("Currently Stopped");
     }
@@ -89,12 +80,12 @@ const WebFrame = () => {
 
         {/* Did absolute to remove our live web-cam feed and just show the recieved frames.*/}
         <div className=" flex flex-col items-center justify-center">
-          <Webcam
+          {/* <Webcam
             ref={webCamRef}
             screenshotFormat="image/jpeg"
             mirrored={true}
             className="absolute -z-10 opacity-0"
-          />
+          /> */}
         </div>
         <div className="web-cam">
           <div className="side-content">
