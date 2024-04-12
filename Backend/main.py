@@ -45,13 +45,16 @@ async def calculate_angle(a,b,c):
         angle = 360 - angle
     return angle
 
-async def process_frame(frame_base64):
-    frame = base64.b64decode(frame_base64)
+async def process_frame():
+    cap = cv2.VideoCapture(0)
     with mp_pose.Pose(
         min_detection_confidence=0.5, min_tracking_confidence=0.5
     ) as pose:
-        frame_np = np.frombuffer(frame, dtype=np.uint8)
-        decoded_frame = cv2.imdecode(frame_np, flags=1)
+        ret, frame = cap.read()
+        
+        # Recolor image to RGB.
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image.flags.writeable = False
 
         # Get original dimensions
         height, width, _ = decoded_frame.shape
@@ -100,26 +103,24 @@ async def process_frame(frame_base64):
         ret, buffer = cv2.imencode(".jpg", decoded_frame)
         frame_bytes = buffer.tobytes()
 
-        # # Save the processed frame to a file
-        # filename = f"processed_images/{time.time()}.jpg"
-        # os.makedirs(os.path.dirname(filename), exist_ok=True)
-        # with open(filename, "wb") as f:
-        #     f.write(buffer)
+        # Save the processed frame to a file
+        filename = f"processed_images/{time.time()}.jpg"
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with open(filename, "wb") as f:
+            f.write(buffer)
 
         # Convert the processed frame to base64
-        frame_base64 = base64.b64encode(frame_bytes).decode()
+        frame = cv2.imencode('.jpg', decoded_frame)[1].tobytes()
+        yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-        return frame_base64
 
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     try:
-        while True:
-            data = await websocket.receive_text()
-            processed_frame = await process_frame(data)
-            await websocket.send_bytes(processed_frame)
+        async for frame in process_frame():
+            await websocket.send_bytes(frame)
     except WebSocketDisconnect:
         # Handle disconnection
         print("Client disconnected")
